@@ -70,12 +70,12 @@ namespace SurfacePenOnlyMode
 
         private void SetDriverOn()
         {
-            hwHelper.SetDeviceState(matchArray, true);
+
         }
 
         private void SetDriverOff()
         {
-            hwHelper.SetDeviceState(matchArray, false);
+            
         }
 
         private void OnClickExit(object sender, EventArgs e)
