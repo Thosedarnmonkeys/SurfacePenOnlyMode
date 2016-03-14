@@ -46,6 +46,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="HardwareManager.cs" />
     <Compile Include="PenOnlyTrayApp.cs">
       <SubType>Form</SubType>
     </Compile>
@@ -71,12 +72,6 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />
-  </ItemGroup>
-  <ItemGroup>
-    <ProjectReference Include="..\HardwareHelperLibrary\HardwareHelperLib.csproj">
-      <Project>{86054fd0-a9f8-419e-b185-e55c9e3e1ee5}</Project>
-      <Name>HardwareHelperLib</Name>
-    </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

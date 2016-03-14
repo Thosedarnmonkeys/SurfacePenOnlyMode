@@ -6,7 +6,6 @@ using System.Linq;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using System.ComponentModel;
-using HardwareHelperLib;
 
 namespace SurfacePenOnlyMode
 {
@@ -14,7 +13,6 @@ namespace SurfacePenOnlyMode
     {
         private ContextMenu trayMenu;
         private NotifyIcon trayIcon;
-        private HH_Lib hwHelper = new HH_Lib();
         private readonly string[] matchArray = new string[] { "HID-compliant" , "touch", "screen"};
  
         /// <summary>
