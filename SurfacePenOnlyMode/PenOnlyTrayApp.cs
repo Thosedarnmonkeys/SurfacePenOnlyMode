@@ -13,9 +13,9 @@ namespace SurfacePenOnlyMode
     {
         private ContextMenu trayMenu;
         private NotifyIcon trayIcon;
-        private readonly string[] matchArray = new string[] { "HID-compliant" , "touch", "screen"};
- 
-        /// <summary>
+        private Func<string, bool> matchFunc = s => s.ToLower() == "hid-compliant touch screen";
+
+            /// <summary>
         /// The main entry point for the application.
         /// </summary>
         [STAThread]
@@ -70,12 +70,26 @@ namespace SurfacePenOnlyMode
 
         private void SetDriverOn()
         {
-
+            try
+            {
+                HardwareManager.SetDeviceState(matchFunc, false);
+            }
+            catch (Exception e)
+            {
+                MessageBox.Show("Error while trying to set driver on: " + e.Message);
+            }
         }
 
         private void SetDriverOff()
         {
-            
+            try
+            {
+                HardwareManager.SetDeviceState(matchFunc, true);
+            }
+            catch (Exception e)
+            {
+                MessageBox.Show("Error while trying to set driver off: " + e.Message);
+            }
         }
 
         private void OnClickExit(object sender, EventArgs e)
