@@ -14,28 +14,28 @@ namespace SurfacePenOnlyMode
 
     public static class DisableHardware
     {
-        const uint DIF_PROPERTYCHANGE = 0x12;
-        const uint DICS_ENABLE = 1;
-        const uint DICS_DISABLE = 2;  // disable device
-        const uint DICS_FLAG_GLOBAL = 1; // not profile-specific
-        const uint DIGCF_ALLCLASSES = 4;
-        const uint DIGCF_PRESENT = 2;
-        const uint ERROR_INVALID_DATA = 13;
-        const uint ERROR_NO_MORE_ITEMS = 259;
-        const uint ERROR_ELEMENT_NOT_FOUND = 1168;
+        private const uint DIF_PROPERTYCHANGE = 0x12;
+        private const uint DICS_ENABLE = 1;
+        private const uint DICS_DISABLE = 2; // disable device
+        private const uint DICS_FLAG_GLOBAL = 1; // not profile-specific
+        private const uint DIGCF_ALLCLASSES = 4;
+        private const uint DIGCF_PRESENT = 2;
+        private const uint ERROR_INVALID_DATA = 13;
+        private const uint ERROR_NO_MORE_ITEMS = 259;
+        private const uint ERROR_ELEMENT_NOT_FOUND = 1168;
 
-        static DEVPROPKEY DEVPKEY_Device_DeviceDesc;
-        static DEVPROPKEY DEVPKEY_Device_HardwareIds;
+        private static DEVPROPKEY DEVPKEY_Device_DeviceDesc;
+        private static DEVPROPKEY DEVPKEY_Device_HardwareIds;
 
         [StructLayout(LayoutKind.Sequential)]
-        struct SP_CLASSINSTALL_HEADER
+        private struct SP_CLASSINSTALL_HEADER
         {
             public UInt32 cbSize;
             public UInt32 InstallFunction;
         }
 
         [StructLayout(LayoutKind.Sequential)]
-        struct SP_PROPCHANGE_PARAMS
+        private struct SP_PROPCHANGE_PARAMS
         {
             public SP_CLASSINSTALL_HEADER ClassInstallHeader;
             public UInt32 StateChange;
@@ -44,77 +44,76 @@ namespace SurfacePenOnlyMode
         }
 
         [StructLayout(LayoutKind.Sequential)]
-        struct SP_DEVINFO_DATA
+        private struct SP_DEVINFO_DATA
         {
             public UInt32 cbSize;
             public Guid classGuid;
             public UInt32 devInst;
-            public IntPtr reserved;     // CHANGE #1 - was UInt32
+            public IntPtr reserved; // CHANGE #1 - was UInt32
         }
 
         [StructLayout(LayoutKind.Sequential)]
-        struct DEVPROPKEY
+        private struct DEVPROPKEY
         {
             public Guid fmtid;
             public UInt32 pid;
         }
 
         [DllImport("setupapi.dll", SetLastError = true)]
-        static extern IntPtr SetupDiGetClassDevsW(
+        private static extern IntPtr SetupDiGetClassDevsW(
             [In] ref Guid ClassGuid,
-            [MarshalAs(UnmanagedType.LPWStr)]
-string Enumerator,
+            [MarshalAs(UnmanagedType.LPWStr)] string Enumerator,
             IntPtr parent,
             UInt32 flags);
 
         [DllImport("setupapi.dll", SetLastError = true)]
-        static extern bool SetupDiDestroyDeviceInfoList(IntPtr handle);
+        private static extern bool SetupDiDestroyDeviceInfoList(IntPtr handle);
 
         [DllImport("setupapi.dll", SetLastError = true)]
-        static extern bool SetupDiEnumDeviceInfo(IntPtr deviceInfoSet,
+        private static extern bool SetupDiEnumDeviceInfo(IntPtr deviceInfoSet,
             UInt32 memberIndex,
             [Out] out SP_DEVINFO_DATA deviceInfoData);
 
         [DllImport("setupapi.dll", SetLastError = true)]
-        static extern bool SetupDiSetClassInstallParams(
+        private static extern bool SetupDiSetClassInstallParams(
             IntPtr deviceInfoSet,
             [In] ref SP_DEVINFO_DATA deviceInfoData,
             [In] ref SP_PROPCHANGE_PARAMS classInstallParams,
             UInt32 ClassInstallParamsSize);
 
         [DllImport("setupapi.dll", SetLastError = true)]
-        static extern bool SetupDiChangeState(
+        private static extern bool SetupDiChangeState(
             IntPtr deviceInfoSet,
             [In] ref SP_DEVINFO_DATA deviceInfoData);
 
         [DllImport("setupapi.dll", SetLastError = true)]
-        static extern bool SetupDiGetDevicePropertyW(
-                IntPtr deviceInfoSet,
-                [In] ref SP_DEVINFO_DATA DeviceInfoData,
-                [In] ref DEVPROPKEY propertyKey,
-                [Out] out UInt32 propertyType,
-                IntPtr propertyBuffer,
-                UInt32 propertyBufferSize,
-                out UInt32 requiredSize,
-                UInt32 flags);
+        private static extern bool SetupDiGetDevicePropertyW(
+            IntPtr deviceInfoSet,
+            [In] ref SP_DEVINFO_DATA DeviceInfoData,
+            [In] ref DEVPROPKEY propertyKey,
+            [Out] out UInt32 propertyType,
+            IntPtr propertyBuffer,
+            UInt32 propertyBufferSize,
+            out UInt32 requiredSize,
+            UInt32 flags);
 
         [DllImport("setupapi.dll", SetLastError = true)]
-        static extern bool SetupDiGetDeviceRegistryPropertyW(
-          IntPtr DeviceInfoSet,
-          [In] ref SP_DEVINFO_DATA DeviceInfoData,
-          UInt32 Property,
-          [Out] out UInt32 PropertyRegDataType,
-          IntPtr PropertyBuffer,
-          UInt32 PropertyBufferSize,
-          [In, Out] ref UInt32 RequiredSize
-        );
+        private static extern bool SetupDiGetDeviceRegistryPropertyW(
+            IntPtr DeviceInfoSet,
+            [In] ref SP_DEVINFO_DATA DeviceInfoData,
+            UInt32 Property,
+            [Out] out UInt32 PropertyRegDataType,
+            IntPtr PropertyBuffer,
+            UInt32 PropertyBufferSize,
+            [In, Out] ref UInt32 RequiredSize
+            );
 
         static DisableHardware()
         {
             DisableHardware.DEVPKEY_Device_DeviceDesc = new DEVPROPKEY();
             DEVPKEY_Device_DeviceDesc.fmtid = new Guid(
-                    0xa45c254e, 0xdf1c, 0x4efd, 0x80, 0x20, 0x67,
-                    0xd1, 0x46, 0xa8, 0x50, 0xe0);
+                0xa45c254e, 0xdf1c, 0x4efd, 0x80, 0x20, 0x67,
+                0xd1, 0x46, 0xa8, 0x50, 0xe0);
             DEVPKEY_Device_DeviceDesc.pid = 2;
 
             DEVPKEY_Device_HardwareIds = new DEVPROPKEY();
@@ -141,10 +140,10 @@ string Enumerator,
                 CheckError("SetupDiGetClassDevs");
 
                 SP_DEVINFO_DATA devdata = new SP_DEVINFO_DATA();
-                devdata.cbSize = (UInt32)Marshal.SizeOf(devdata);
+                devdata.cbSize = (UInt32) Marshal.SizeOf(devdata);
 
                 // Get first device matching device criterion.
-                for (uint i = 0; ; i++)
+                for (uint i = 0;; i++)
                 {
                     SetupDiEnumDeviceInfo(info,
                         i,
@@ -155,7 +154,7 @@ string Enumerator,
                     CheckError("SetupDiEnumDeviceInfo");
 
                     string devicepath = GetStringPropertyForDevice(info,
-                                               devdata, 1); // SPDRP_HARDWAREID
+                        devdata, 1); // SPDRP_HARDWAREID
 
                     // Uncomment to print name/path
                     //Console.WriteLine(GetStringPropertyForDevice(info,
@@ -166,7 +165,7 @@ string Enumerator,
                 }
 
                 SP_CLASSINSTALL_HEADER header = new SP_CLASSINSTALL_HEADER();
-                header.cbSize = (UInt32)Marshal.SizeOf(header);
+                header.cbSize = (UInt32) Marshal.SizeOf(header);
                 header.InstallFunction = DIF_PROPERTYCHANGE;
 
                 SP_PROPCHANGE_PARAMS propchangeparams = new SP_PROPCHANGE_PARAMS();
@@ -178,7 +177,7 @@ string Enumerator,
                 SetupDiSetClassInstallParams(info,
                     ref devdata,
                     ref propchangeparams,
-                    (UInt32)Marshal.SizeOf(propchangeparams));
+                    (UInt32) Marshal.SizeOf(propchangeparams));
                 CheckError("SetupDiSetClassInstallParams");
 
                 SetupDiChangeState(
@@ -192,6 +191,7 @@ string Enumerator,
                     SetupDiDestroyDeviceInfoList(info);
             }
         }
+
         private static void CheckError(string message, int lasterror = -1)
         {
 
@@ -210,7 +210,7 @@ string Enumerator,
             try
             {
                 uint buflen = 512;
-                buffer = Marshal.AllocHGlobal((int)buflen);
+                buffer = Marshal.AllocHGlobal((int) buflen);
                 outsize = 0;
                 // CHANGE #2 - Use this instead of SetupDiGetDeviceProperty 
                 SetupDiGetDeviceRegistryPropertyW(
@@ -222,7 +222,7 @@ string Enumerator,
                     buflen,
                     ref outsize);
                 byte[] lbuffer = new byte[outsize];
-                Marshal.Copy(buffer, lbuffer, 0, (int)outsize);
+                Marshal.Copy(buffer, lbuffer, 0, (int) outsize);
                 int errcode = Marshal.GetLastWin32Error();
                 if (errcode == ERROR_INVALID_DATA) return null;
                 CheckError("SetupDiGetDeviceProperty", errcode);
