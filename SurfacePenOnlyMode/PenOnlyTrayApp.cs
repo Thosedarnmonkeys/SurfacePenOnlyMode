@@ -14,7 +14,7 @@ namespace SurfacePenOnlyMode
     #region private fields
     private ContextMenu trayMenu;
     private NotifyIcon trayIcon;
-    private readonly Func<string, bool> matchFunc = s => s.ToLower() == "hid-compliant touch screen";
+    private readonly Func<string, bool> matchFunc = s => s == "HID\\BtIaHidDevice\0HID_DEVICE_SYSTEM_CONSUMER\0HID_DEVICE_UP:000C_U:0001\0HID_DEVICE\0\0";
     #endregion
 
     #region public methods
