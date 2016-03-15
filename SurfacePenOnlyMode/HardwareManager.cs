@@ -7,12 +7,9 @@ using System.Threading.Tasks;
 
 namespace SurfacePenOnlyMode
 {
-    public class HardwareManager
-    {
+    //ALL THIS CODE IS SCARY AND I DIDN'T WRITE IT
 
-    }
-
-    public static class DisableHardware
+    public static class HardwareManager
     {
         private const uint DIF_PROPERTYCHANGE = 0x12;
         private const uint DICS_ENABLE = 1;
@@ -108,35 +105,25 @@ namespace SurfacePenOnlyMode
             [In, Out] ref UInt32 RequiredSize
             );
 
-        static DisableHardware()
+        static HardwareManager()
         {
-            DisableHardware.DEVPKEY_Device_DeviceDesc = new DEVPROPKEY();
-            DEVPKEY_Device_DeviceDesc.fmtid = new Guid(
-                0xa45c254e, 0xdf1c, 0x4efd, 0x80, 0x20, 0x67,
-                0xd1, 0x46, 0xa8, 0x50, 0xe0);
+            HardwareManager.DEVPKEY_Device_DeviceDesc = new DEVPROPKEY();
+            DEVPKEY_Device_DeviceDesc.fmtid = new Guid( 0xa45c254e, 0xdf1c, 0x4efd, 0x80, 0x20, 0x67, 0xd1, 0x46, 0xa8, 0x50, 0xe0);
             DEVPKEY_Device_DeviceDesc.pid = 2;
 
             DEVPKEY_Device_HardwareIds = new DEVPROPKEY();
-            DEVPKEY_Device_HardwareIds.fmtid = new Guid(
-                0xa45c254e, 0xdf1c, 0x4efd, 0x80, 0x20, 0x67,
-                0xd1, 0x46, 0xa8, 0x50, 0xe0);
+            DEVPKEY_Device_HardwareIds.fmtid = new Guid(0xa45c254e, 0xdf1c, 0x4efd, 0x80, 0x20, 0x67, 0xd1, 0x46, 0xa8, 0x50, 0xe0);
             DEVPKEY_Device_HardwareIds.pid = 3;
         }
 
 
-
-
-        public static void SetDeviceState(Func<string, bool> filter, bool disable = true)
+        public static void SetDeviceState(Func<string, bool> filter, bool disable)
         {
             IntPtr info = IntPtr.Zero;
             Guid NullGuid = Guid.Empty;
             try
             {
-                info = SetupDiGetClassDevsW(
-                    ref NullGuid,
-                    null,
-                    IntPtr.Zero,
-                    DIGCF_ALLCLASSES);
+                info = SetupDiGetClassDevsW(ref NullGuid, null, IntPtr.Zero, DIGCF_ALLCLASSES);
                 CheckError("SetupDiGetClassDevs");
 
                 SP_DEVINFO_DATA devdata = new SP_DEVINFO_DATA();
@@ -145,23 +132,18 @@ namespace SurfacePenOnlyMode
                 // Get first device matching device criterion.
                 for (uint i = 0;; i++)
                 {
-                    SetupDiEnumDeviceInfo(info,
-                        i,
-                        out devdata);
+                    SetupDiEnumDeviceInfo(info, i, out devdata);
+
                     // if no items match filter, throw
                     if (Marshal.GetLastWin32Error() == ERROR_NO_MORE_ITEMS)
                         CheckError("No device found matching filter.", 0xcffff);
+
                     CheckError("SetupDiEnumDeviceInfo");
 
-                    string devicepath = GetStringPropertyForDevice(info,
-                        devdata, 1); // SPDRP_HARDWAREID
+                    string devicepath = GetStringPropertyForDevice(info, devdata, 1); // SPDRP_HARDWAREID
 
-                    // Uncomment to print name/path
-                    //Console.WriteLine(GetStringPropertyForDevice(info,
-                    //                         devdata, DEVPKEY_Device_DeviceDesc));
-                    //Console.WriteLine("   {0}", devicepath);
-                    if (devicepath != null && filter(devicepath)) break;
-
+                    if (devicepath != null && filter(devicepath))
+                        break;
                 }
 
                 SP_CLASSINSTALL_HEADER header = new SP_CLASSINSTALL_HEADER();
@@ -174,15 +156,10 @@ namespace SurfacePenOnlyMode
                 propchangeparams.Scope = DICS_FLAG_GLOBAL;
                 propchangeparams.HwProfile = 0;
 
-                SetupDiSetClassInstallParams(info,
-                    ref devdata,
-                    ref propchangeparams,
-                    (UInt32) Marshal.SizeOf(propchangeparams));
+                SetupDiSetClassInstallParams(info, ref devdata, ref propchangeparams, (UInt32) Marshal.SizeOf(propchangeparams));
                 CheckError("SetupDiSetClassInstallParams");
 
-                SetupDiChangeState(
-                    info,
-                    ref devdata);
+                SetupDiChangeState(info, ref devdata);
                 CheckError("SetupDiChangeState");
             }
             finally
@@ -197,13 +174,10 @@ namespace SurfacePenOnlyMode
 
             int code = lasterror == -1 ? Marshal.GetLastWin32Error() : lasterror;
             if (code != 0)
-                throw new ApplicationException(
-                    String.Format("Error disabling hardware device (Code {0}): {1}",
-                        code, message));
+                throw new ApplicationException(String.Format("Error disabling hardware device (Code {0}): {1}", code, message));
         }
 
-        private static string GetStringPropertyForDevice(IntPtr info, SP_DEVINFO_DATA devdata,
-            uint propId)
+        private static string GetStringPropertyForDevice(IntPtr info, SP_DEVINFO_DATA devdata, uint propId)
         {
             uint proptype, outsize;
             IntPtr buffer = IntPtr.Zero;
@@ -213,14 +187,8 @@ namespace SurfacePenOnlyMode
                 buffer = Marshal.AllocHGlobal((int) buflen);
                 outsize = 0;
                 // CHANGE #2 - Use this instead of SetupDiGetDeviceProperty 
-                SetupDiGetDeviceRegistryPropertyW(
-                    info,
-                    ref devdata,
-                    propId,
-                    out proptype,
-                    buffer,
-                    buflen,
-                    ref outsize);
+                SetupDiGetDeviceRegistryPropertyW(info, ref devdata, propId, out proptype, buffer, buflen, ref outsize);
+
                 byte[] lbuffer = new byte[outsize];
                 Marshal.Copy(buffer, lbuffer, 0, (int) outsize);
                 int errcode = Marshal.GetLastWin32Error();
