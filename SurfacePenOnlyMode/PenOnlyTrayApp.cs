@@ -14,7 +14,8 @@ namespace SurfacePenOnlyMode
     #region private fields
     private ContextMenu trayMenu;
     private NotifyIcon trayIcon;
-    private readonly Func<string, bool> matchFunc = s => s == "HID\\BtIaHidDevice\0HID_DEVICE_SYSTEM_CONSUMER\0HID_DEVICE_UP:000C_U:0001\0HID_DEVICE\0\0";
+    private readonly Func<string, bool> matchFunc = s => s.Contains("VEN_8086&DEV_9D3E");//&SUBSYS_00000000&REV_21");
+    //private readonly Func<string, bool> matchFunc = s => s.ToLower() == "4&f87ce30&0&0004".ToLower();
     #endregion
 
     #region public methods

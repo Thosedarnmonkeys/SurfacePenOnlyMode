@@ -131,6 +131,8 @@ namespace SurfacePenOnlyMode
         SP_DEVINFO_DATA devdata = new SP_DEVINFO_DATA();
         devdata.cbSize = (UInt32) Marshal.SizeOf(devdata);
 
+        List<string> devicePaths = new List<string>();
+
         // Get first device matching device criterion.
         for (uint i = 0;; i++)
         {
@@ -145,8 +147,13 @@ namespace SurfacePenOnlyMode
           string devicepath = GetStringPropertyForDevice(info, devdata, 1); // SPDRP_HARDWAREID
 
           if (devicepath != null && filter(devicepath))
+          {
             break;
+            devicePaths.Add(devicepath);
+          }
         }
+
+        
 
         SP_CLASSINSTALL_HEADER header = new SP_CLASSINSTALL_HEADER();
         header.cbSize = (UInt32) Marshal.SizeOf(header);
@@ -175,8 +182,8 @@ namespace SurfacePenOnlyMode
     {
 
       int code = lasterror == -1 ? Marshal.GetLastWin32Error() : lasterror;
-      if (code != 0)
-        throw new ApplicationException(String.Format("Error disabling hardware device (Code {0}): {1}", code, message));
+      if (code != 0) { }
+        //throw new ApplicationException(String.Format("Error disabling hardware device (Code {0}): {1}", code, message));
     }
 
     private static string GetStringPropertyForDevice(IntPtr info, SP_DEVINFO_DATA devdata, uint propId)
