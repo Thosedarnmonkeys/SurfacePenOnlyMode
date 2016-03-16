@@ -38,7 +38,7 @@ namespace SurfacePenOnlyMode
 
 
       trayIcon = new NotifyIcon();
-      trayIcon.Text = "MyTrayApp";
+      trayIcon.Text = "Pen Only Mode";
       trayIcon.Icon = new Icon(SystemIcons.Asterisk, 40, 40);
 
       trayIcon.ContextMenu = trayMenu;
