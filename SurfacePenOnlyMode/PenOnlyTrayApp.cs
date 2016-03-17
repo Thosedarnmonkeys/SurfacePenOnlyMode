@@ -6,6 +6,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using System.ComponentModel;
+using SurfacePenOnlyMode.Properties;
 
 namespace SurfacePenOnlyMode
 {
@@ -39,7 +40,9 @@ namespace SurfacePenOnlyMode
 
       trayIcon = new NotifyIcon();
       trayIcon.Text = "Pen Only Mode";
-      trayIcon.Icon = new Icon(SystemIcons.Asterisk, 40, 40);
+
+      Bitmap bmp = Resources.PenIcon;
+      trayIcon.Icon = Icon.FromHandle(bmp.GetHicon());
 
       trayIcon.ContextMenu = trayMenu;
       trayIcon.Visible = true;
@@ -89,7 +92,7 @@ namespace SurfacePenOnlyMode
     }
     private void OnClickExit(object sender, EventArgs e)
     {
-      Application.Exit();
+      Close();
     }
     #endregion
 
@@ -116,9 +119,9 @@ namespace SurfacePenOnlyMode
 
     protected override void OnClosing(CancelEventArgs e)
     {
-      trayIcon = null;
-
       OnDeviceStateChange(this, new EventArgs());
+
+      trayIcon.Icon = null;
 
       base.OnClosing(e);
     }
