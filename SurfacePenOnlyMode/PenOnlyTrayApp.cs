@@ -15,6 +15,10 @@ namespace SurfacePenOnlyMode
     #region private fields
     private ContextMenu trayMenu;
     private NotifyIcon trayIcon;
+
+    private string instancePath = @"BTHENUM\{13B67E97-545B-41DC-AC44-6FEDE5FE6087}_LOCALMFG&0000\7&1AE765EB&0&000000000000_00000000";
+    private Guid deviceGuid = new Guid("{745a17a0-74d3-11d0-b6fe-00a0c90f57da}");
+
     private readonly Func<string, bool> matchFunc = s => s.Contains("VEN_8086&DEV_9D3E");//&SUBSYS_00000000&REV_21");
     //private readonly Func<string, bool> matchFunc = s => s.ToLower() == "4&f87ce30&0&0004".ToLower();
     #endregion
@@ -99,12 +103,14 @@ namespace SurfacePenOnlyMode
     #region private methods
     private void SetDriverOn()
     {
-      HardwareManager.SetDeviceState(matchFunc, false);
+      AlternateHardwareManager.DeviceHelper.SetDeviceEnabled(deviceGuid, instancePath, true);
+      //HardwareManager.SetDeviceState(matchFunc, false);
     }
 
     private void SetDriverOff()
     {
-      HardwareManager.SetDeviceState(matchFunc, true);
+      AlternateHardwareManager.DeviceHelper.SetDeviceEnabled(deviceGuid, instancePath, false);
+      //HardwareManager.SetDeviceState(matchFunc, true);
     }
     #endregion
 
