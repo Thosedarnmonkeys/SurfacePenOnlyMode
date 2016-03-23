@@ -1,216 +1,379 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Linq;
+using System.Runtime.ConstrainedExecution;
 using System.Runtime.InteropServices;
+using System.Security;
 using System.Text;
 using System.Threading.Tasks;
+using Microsoft.Win32.SafeHandles;
 
 namespace SurfacePenOnlyMode
 {
-  //ALL THIS CODE IS SCARY AND I DIDN'T WRITE IT
-
-  public static class HardwareManager
+  public class HardwareManager
   {
-    private const uint DIF_PROPERTYCHANGE = 0x12;
-    private const uint DICS_ENABLE = 1;
-    private const uint DICS_DISABLE = 2; // disable device
-    private const uint DICS_FLAG_GLOBAL = 1; // not profile-specific
-    private const uint DIGCF_ALLCLASSES = 4;
-    private const uint DIGCF_PRESENT = 2;
-    private const uint ERROR_INVALID_DATA = 13;
-    private const uint ERROR_NO_MORE_ITEMS = 259;
-    private const uint ERROR_ELEMENT_NOT_FOUND = 1168;
+    //Code shamelessly stolen from:
+    //  http://stackoverflow.com/questions/1438371/win32-api-function-to-programmatically-enable-disable-device
 
-    private static DEVPROPKEY DEVPKEY_Device_DeviceDesc;
-    private static DEVPROPKEY DEVPKEY_Device_HardwareIds;
-
-    [StructLayout(LayoutKind.Sequential)]
-    private struct SP_CLASSINSTALL_HEADER
+    [Flags()]
+    internal enum SetupDiGetClassDevsFlags
     {
-      public UInt32 cbSize;
-      public UInt32 InstallFunction;
+      Default = 1,
+      Present = 2,
+      AllClasses = 4,
+      Profile = 8,
+      DeviceInterface = (int)0x10
+    }
+
+    internal enum DiFunction
+    {
+      SelectDevice = 1,
+      InstallDevice = 2,
+      AssignResources = 3,
+      Properties = 4,
+      Remove = 5,
+      FirstTimeSetup = 6,
+      FoundDevice = 7,
+      SelectClassDrivers = 8,
+      ValidateClassDrivers = 9,
+      InstallClassDrivers = (int)0xa,
+      CalcDiskSpace = (int)0xb,
+      DestroyPrivateData = (int)0xc,
+      ValidateDriver = (int)0xd,
+      Detect = (int)0xf,
+      InstallWizard = (int)0x10,
+      DestroyWizardData = (int)0x11,
+      PropertyChange = (int)0x12,
+      EnableClass = (int)0x13,
+      DetectVerify = (int)0x14,
+      InstallDeviceFiles = (int)0x15,
+      UnRemove = (int)0x16,
+      SelectBestCompatDrv = (int)0x17,
+      AllowInstall = (int)0x18,
+      RegisterDevice = (int)0x19,
+      NewDeviceWizardPreSelect = (int)0x1a,
+      NewDeviceWizardSelect = (int)0x1b,
+      NewDeviceWizardPreAnalyze = (int)0x1c,
+      NewDeviceWizardPostAnalyze = (int)0x1d,
+      NewDeviceWizardFinishInstall = (int)0x1e,
+      Unused1 = (int)0x1f,
+      InstallInterfaces = (int)0x20,
+      DetectCancel = (int)0x21,
+      RegisterCoInstallers = (int)0x22,
+      AddPropertyPageAdvanced = (int)0x23,
+      AddPropertyPageBasic = (int)0x24,
+      Reserved1 = (int)0x25,
+      Troubleshooter = (int)0x26,
+      PowerMessageWake = (int)0x27,
+      AddRemotePropertyPageAdvanced = (int)0x28,
+      UpdateDriverUI = (int)0x29,
+      Reserved2 = (int)0x30
+    }
+
+    internal enum StateChangeAction
+    {
+      Enable = 1,
+      Disable = 2,
+      PropChange = 3,
+      Start = 4,
+      Stop = 5
+    }
+
+    [Flags()]
+    internal enum Scopes
+    {
+      Global = 1,
+      ConfigSpecific = 2,
+      ConfigGeneral = 4
+    }
+
+    internal enum SetupApiError
+    {
+      NoAssociatedClass = unchecked((int)0xe0000200),
+      ClassMismatch = unchecked((int)0xe0000201),
+      DuplicateFound = unchecked((int)0xe0000202),
+      NoDriverSelected = unchecked((int)0xe0000203),
+      KeyDoesNotExist = unchecked((int)0xe0000204),
+      InvalidDevinstName = unchecked((int)0xe0000205),
+      InvalidClass = unchecked((int)0xe0000206),
+      DevinstAlreadyExists = unchecked((int)0xe0000207),
+      DevinfoNotRegistered = unchecked((int)0xe0000208),
+      InvalidRegProperty = unchecked((int)0xe0000209),
+      NoInf = unchecked((int)0xe000020a),
+      NoSuchHDevinst = unchecked((int)0xe000020b),
+      CantLoadClassIcon = unchecked((int)0xe000020c),
+      InvalidClassInstaller = unchecked((int)0xe000020d),
+      DiDoDefault = unchecked((int)0xe000020e),
+      DiNoFileCopy = unchecked((int)0xe000020f),
+      InvalidHwProfile = unchecked((int)0xe0000210),
+      NoDeviceSelected = unchecked((int)0xe0000211),
+      DevinfolistLocked = unchecked((int)0xe0000212),
+      DevinfodataLocked = unchecked((int)0xe0000213),
+      DiBadPath = unchecked((int)0xe0000214),
+      NoClassInstallParams = unchecked((int)0xe0000215),
+      FileQueueLocked = unchecked((int)0xe0000216),
+      BadServiceInstallSect = unchecked((int)0xe0000217),
+      NoClassDriverList = unchecked((int)0xe0000218),
+      NoAssociatedService = unchecked((int)0xe0000219),
+      NoDefaultDeviceInterface = unchecked((int)0xe000021a),
+      DeviceInterfaceActive = unchecked((int)0xe000021b),
+      DeviceInterfaceRemoved = unchecked((int)0xe000021c),
+      BadInterfaceInstallSect = unchecked((int)0xe000021d),
+      NoSuchInterfaceClass = unchecked((int)0xe000021e),
+      InvalidReferenceString = unchecked((int)0xe000021f),
+      InvalidMachineName = unchecked((int)0xe0000220),
+      RemoteCommFailure = unchecked((int)0xe0000221),
+      MachineUnavailable = unchecked((int)0xe0000222),
+      NoConfigMgrServices = unchecked((int)0xe0000223),
+      InvalidPropPageProvider = unchecked((int)0xe0000224),
+      NoSuchDeviceInterface = unchecked((int)0xe0000225),
+      DiPostProcessingRequired = unchecked((int)0xe0000226),
+      InvalidCOInstaller = unchecked((int)0xe0000227),
+      NoCompatDrivers = unchecked((int)0xe0000228),
+      NoDeviceIcon = unchecked((int)0xe0000229),
+      InvalidInfLogConfig = unchecked((int)0xe000022a),
+      DiDontInstall = unchecked((int)0xe000022b),
+      InvalidFilterDriver = unchecked((int)0xe000022c),
+      NonWindowsNTDriver = unchecked((int)0xe000022d),
+      NonWindowsDriver = unchecked((int)0xe000022e),
+      NoCatalogForOemInf = unchecked((int)0xe000022f),
+      DevInstallQueueNonNative = unchecked((int)0xe0000230),
+      NotDisableable = unchecked((int)0xe0000231),
+      CantRemoveDevinst = unchecked((int)0xe0000232),
+      InvalidTarget = unchecked((int)0xe0000233),
+      DriverNonNative = unchecked((int)0xe0000234),
+      InWow64 = unchecked((int)0xe0000235),
+      SetSystemRestorePoint = unchecked((int)0xe0000236),
+      IncorrectlyCopiedInf = unchecked((int)0xe0000237),
+      SceDisabled = unchecked((int)0xe0000238),
+      UnknownException = unchecked((int)0xe0000239),
+      PnpRegistryError = unchecked((int)0xe000023a),
+      RemoteRequestUnsupported = unchecked((int)0xe000023b),
+      NotAnInstalledOemInf = unchecked((int)0xe000023c),
+      InfInUseByDevices = unchecked((int)0xe000023d),
+      DiFunctionObsolete = unchecked((int)0xe000023e),
+      NoAuthenticodeCatalog = unchecked((int)0xe000023f),
+      AuthenticodeDisallowed = unchecked((int)0xe0000240),
+      AuthenticodeTrustedPublisher = unchecked((int)0xe0000241),
+      AuthenticodeTrustNotEstablished = unchecked((int)0xe0000242),
+      AuthenticodePublisherNotTrusted = unchecked((int)0xe0000243),
+      SignatureOSAttributeMismatch = unchecked((int)0xe0000244),
+      OnlyValidateViaAuthenticode = unchecked((int)0xe0000245)
     }
 
     [StructLayout(LayoutKind.Sequential)]
-    private struct SP_PROPCHANGE_PARAMS
+    internal struct DeviceInfoData
     {
-      public SP_CLASSINSTALL_HEADER ClassInstallHeader;
-      public UInt32 StateChange;
-      public UInt32 Scope;
-      public UInt32 HwProfile;
+      public int Size;
+      public Guid ClassGuid;
+      public int DevInst;
+      public IntPtr Reserved;
     }
 
     [StructLayout(LayoutKind.Sequential)]
-    private struct SP_DEVINFO_DATA
+    internal struct PropertyChangeParameters
     {
-      public UInt32 cbSize;
-      public Guid classGuid;
-      public UInt32 devInst;
-      public IntPtr reserved; // CHANGE #1 - was UInt32
+      public int Size;
+      // part of header. It's flattened out into 1 structure.
+      public DiFunction DiFunction;
+      public StateChangeAction StateChange;
+      public Scopes Scope;
+      public int HwProfile;
     }
 
-    [StructLayout(LayoutKind.Sequential)]
-    private struct DEVPROPKEY
+    internal class NativeMethods
     {
-      public Guid fmtid;
-      public UInt32 pid;
-    }
 
-    [DllImport("setupapi.dll", SetLastError = true)]
-    private static extern IntPtr SetupDiGetClassDevsW(
-      [In] ref Guid ClassGuid,
-      [MarshalAs(UnmanagedType.LPWStr)] string Enumerator,
-      IntPtr parent,
-      UInt32 flags);
+      private const string setupapi = "setupapi.dll";
 
-    [DllImport("setupapi.dll", SetLastError = true)]
-    private static extern bool SetupDiDestroyDeviceInfoList(IntPtr handle);
-
-    [DllImport("setupapi.dll", SetLastError = true)]
-    private static extern bool SetupDiEnumDeviceInfo(IntPtr deviceInfoSet,
-      UInt32 memberIndex,
-      [Out] out SP_DEVINFO_DATA deviceInfoData);
-
-    [DllImport("setupapi.dll", SetLastError = true)]
-    private static extern bool SetupDiSetClassInstallParams(
-      IntPtr deviceInfoSet,
-      [In] ref SP_DEVINFO_DATA deviceInfoData,
-      [In] ref SP_PROPCHANGE_PARAMS classInstallParams,
-      UInt32 ClassInstallParamsSize);
-
-    [DllImport("setupapi.dll", SetLastError = true)]
-    private static extern bool SetupDiChangeState(
-      IntPtr deviceInfoSet,
-      [In] ref SP_DEVINFO_DATA deviceInfoData);
-
-    [DllImport("setupapi.dll", SetLastError = true)]
-    private static extern bool SetupDiGetDevicePropertyW(
-      IntPtr deviceInfoSet,
-      [In] ref SP_DEVINFO_DATA DeviceInfoData,
-      [In] ref DEVPROPKEY propertyKey,
-      [Out] out UInt32 propertyType,
-      IntPtr propertyBuffer,
-      UInt32 propertyBufferSize,
-      out UInt32 requiredSize,
-      UInt32 flags);
-
-    [DllImport("setupapi.dll", SetLastError = true)]
-    private static extern bool SetupDiGetDeviceRegistryPropertyW(
-      IntPtr DeviceInfoSet,
-      [In] ref SP_DEVINFO_DATA DeviceInfoData,
-      UInt32 Property,
-      [Out] out UInt32 PropertyRegDataType,
-      IntPtr PropertyBuffer,
-      UInt32 PropertyBufferSize,
-      [In, Out] ref UInt32 RequiredSize
-      );
-
-    static HardwareManager()
-    {
-      HardwareManager.DEVPKEY_Device_DeviceDesc = new DEVPROPKEY();
-      DEVPKEY_Device_DeviceDesc.fmtid = new Guid(0xa45c254e, 0xdf1c, 0x4efd, 0x80, 0x20, 0x67, 0xd1, 0x46, 0xa8, 0x50,
-        0xe0);
-      DEVPKEY_Device_DeviceDesc.pid = 2;
-
-      DEVPKEY_Device_HardwareIds = new DEVPROPKEY();
-      DEVPKEY_Device_HardwareIds.fmtid = new Guid(0xa45c254e, 0xdf1c, 0x4efd, 0x80, 0x20, 0x67, 0xd1, 0x46, 0xa8, 0x50,
-        0xe0);
-      DEVPKEY_Device_HardwareIds.pid = 3;
-    }
-
-
-    public static void SetDeviceState(Func<string, bool> filter, bool disable)
-    {
-      IntPtr info = IntPtr.Zero;
-      Guid NullGuid = Guid.Empty;
-      try
+      private NativeMethods()
       {
-        info = SetupDiGetClassDevsW(ref NullGuid, null, IntPtr.Zero, DIGCF_ALLCLASSES);
-        CheckError("SetupDiGetClassDevs");
+      }
 
-        SP_DEVINFO_DATA devdata = new SP_DEVINFO_DATA();
-        devdata.cbSize = (UInt32) Marshal.SizeOf(devdata);
+      [DllImport(setupapi, CallingConvention = CallingConvention.Winapi, SetLastError = true)]
+      [return: MarshalAs(UnmanagedType.Bool)]
+      public static extern bool SetupDiCallClassInstaller(DiFunction installFunction,
+        SafeDeviceInfoSetHandle deviceInfoSet, [In()] ref DeviceInfoData deviceInfoData);
 
-        List<string> devicePaths = new List<string>();
+      [DllImport(setupapi, CallingConvention = CallingConvention.Winapi, SetLastError = true)]
+      [return: MarshalAs(UnmanagedType.Bool)]
+      public static extern bool SetupDiEnumDeviceInfo(SafeDeviceInfoSetHandle deviceInfoSet, int memberIndex,
+        ref DeviceInfoData deviceInfoData);
 
-        // Get first device matching device criterion.
-        for (uint i = 0;; i++)
+      [DllImport(setupapi, CallingConvention = CallingConvention.Winapi, CharSet = CharSet.Unicode, SetLastError = true)
+      ]
+      public static extern SafeDeviceInfoSetHandle SetupDiGetClassDevs([In()] ref Guid classGuid,
+        [MarshalAs(UnmanagedType.LPWStr)] string enumerator, IntPtr hwndParent, SetupDiGetClassDevsFlags flags);
+
+      /*
+      [DllImport(setupapi, CallingConvention = CallingConvention.Winapi, CharSet = CharSet.Unicode, SetLastError = true)]
+      [return: MarshalAs(UnmanagedType.Bool)]
+      public static extern bool SetupDiGetDeviceInstanceId(SafeDeviceInfoSetHandle deviceInfoSet, [In()]
+ref DeviceInfoData did, [MarshalAs(UnmanagedType.LPTStr)]
+StringBuilder deviceInstanceId, int deviceInstanceIdSize, [Out()]
+ref int requiredSize);
+      */
+
+      [DllImport("setupapi.dll", SetLastError = true, CharSet = CharSet.Auto)]
+      [return: MarshalAs(UnmanagedType.Bool)]
+      public static extern bool SetupDiGetDeviceInstanceId(
+        IntPtr DeviceInfoSet,
+        ref DeviceInfoData did,
+        [MarshalAs(UnmanagedType.LPTStr)] StringBuilder DeviceInstanceId,
+        int DeviceInstanceIdSize,
+        out int RequiredSize
+        );
+
+      [SuppressUnmanagedCodeSecurity()]
+      [ReliabilityContract(Consistency.WillNotCorruptState, Cer.Success)]
+      [DllImport(setupapi, CallingConvention = CallingConvention.Winapi, SetLastError = true)]
+      [return: MarshalAs(UnmanagedType.Bool)]
+      public static extern bool SetupDiDestroyDeviceInfoList(IntPtr deviceInfoSet);
+
+      [DllImport(setupapi, CallingConvention = CallingConvention.Winapi, SetLastError = true)]
+      [return: MarshalAs(UnmanagedType.Bool)]
+      public static extern bool SetupDiSetClassInstallParams(SafeDeviceInfoSetHandle deviceInfoSet,
+        [In()] ref DeviceInfoData deviceInfoData, [In()] ref PropertyChangeParameters classInstallParams,
+        int classInstallParamsSize);
+
+    }
+
+    internal class SafeDeviceInfoSetHandle : SafeHandleZeroOrMinusOneIsInvalid
+    {
+
+      public SafeDeviceInfoSetHandle()
+        : base(true)
+      {
+      }
+
+      protected override bool ReleaseHandle()
+      {
+        return NativeMethods.SetupDiDestroyDeviceInfoList(this.handle);
+      }
+
+    }
+
+    public sealed class DeviceHelper
+    {
+
+      private DeviceHelper()
+      {
+      }
+
+      /// <summary>
+      /// Enable or disable a device.
+      /// </summary>
+      /// <param name="classGuid">The class guid of the device. Available in the device manager.</param>
+      /// <param name="instanceId">The device instance id of the device. Available in the device manager.</param>
+      /// <param name="enable">True to enable, False to disable.</param>
+      /// <remarks>Will throw an exception if the device is not Disableable.</remarks>
+      public static void SetDeviceEnabled(Guid classGuid, string instanceId, bool enable)
+      {
+        SafeDeviceInfoSetHandle diSetHandle = null;
+        try
         {
-          SetupDiEnumDeviceInfo(info, i, out devdata);
-
-          // if no items match filter, throw
-          if (Marshal.GetLastWin32Error() == ERROR_NO_MORE_ITEMS)
-            CheckError("No device found matching filter.", 0xcffff);
-
-          CheckError("SetupDiEnumDeviceInfo");
-
-          string devicepath = GetStringPropertyForDevice(info, devdata, 1); // SPDRP_HARDWAREID
-
-          if (devicepath != null && filter(devicepath))
+          // Get the handle to a device information set for all devices matching classGuid that are present on the 
+          // system.
+          diSetHandle = NativeMethods.SetupDiGetClassDevs(ref classGuid, null, IntPtr.Zero,
+            SetupDiGetClassDevsFlags.Present);
+          // Get the device information data for each matching device.
+          DeviceInfoData[] diData = GetDeviceInfoData(diSetHandle);
+          // Find the index of our instance. i.e. the touchpad mouse - I have 3 mice attached...
+          int index = GetIndexOfInstance(diSetHandle, diData, instanceId);
+          // Disable...
+          EnableDevice(diSetHandle, diData[index], enable);
+        }
+        finally
+        {
+          if (diSetHandle != null)
           {
-            break;
-            devicePaths.Add(devicepath);
+            if (diSetHandle.IsClosed == false)
+            {
+              diSetHandle.Close();
+            }
+            diSetHandle.Dispose();
           }
         }
-
-        
-
-        SP_CLASSINSTALL_HEADER header = new SP_CLASSINSTALL_HEADER();
-        header.cbSize = (UInt32) Marshal.SizeOf(header);
-        header.InstallFunction = DIF_PROPERTYCHANGE;
-
-        SP_PROPCHANGE_PARAMS propchangeparams = new SP_PROPCHANGE_PARAMS();
-        propchangeparams.ClassInstallHeader = header;
-        propchangeparams.StateChange = disable ? DICS_DISABLE : DICS_ENABLE;
-        propchangeparams.Scope = DICS_FLAG_GLOBAL;
-        propchangeparams.HwProfile = 0;
-
-        SetupDiSetClassInstallParams(info, ref devdata, ref propchangeparams, (UInt32) Marshal.SizeOf(propchangeparams));
-        CheckError("SetupDiSetClassInstallParams");
-
-        SetupDiChangeState(info, ref devdata);
-        CheckError("SetupDiChangeState");
       }
-      finally
+
+      private static DeviceInfoData[] GetDeviceInfoData(SafeDeviceInfoSetHandle handle)
       {
-        if (info != IntPtr.Zero)
-          SetupDiDestroyDeviceInfoList(info);
+        List<DeviceInfoData> data = new List<DeviceInfoData>();
+        DeviceInfoData did = new DeviceInfoData();
+        int didSize = Marshal.SizeOf(did);
+        did.Size = didSize;
+        int index = 0;
+        while (NativeMethods.SetupDiEnumDeviceInfo(handle, index, ref did))
+        {
+          data.Add(did);
+          index += 1;
+          did = new DeviceInfoData();
+          did.Size = didSize;
+        }
+        return data.ToArray();
+      }
+
+      // Find the index of the particular DeviceInfoData for the instanceId.
+      private static int GetIndexOfInstance(SafeDeviceInfoSetHandle handle, DeviceInfoData[] diData, string instanceId)
+      {
+        const int ERROR_INSUFFICIENT_BUFFER = 122;
+        for (int index = 0; index <= diData.Length - 1; index++)
+        {
+          StringBuilder sb = new StringBuilder(1);
+          int requiredSize = 0;
+          bool result = NativeMethods.SetupDiGetDeviceInstanceId(handle.DangerousGetHandle(), ref diData[index], sb,
+            sb.Capacity, out requiredSize);
+          if (result == false && Marshal.GetLastWin32Error() == ERROR_INSUFFICIENT_BUFFER)
+          {
+            sb.Capacity = requiredSize;
+            result = NativeMethods.SetupDiGetDeviceInstanceId(handle.DangerousGetHandle(), ref diData[index], sb,
+              sb.Capacity, out requiredSize);
+          }
+          if (result == false)
+            throw new Win32Exception();
+          if (instanceId.Equals(sb.ToString()))
+          {
+            return index;
+          }
+        }
+        // not found
+        return -1;
+      }
+
+      // enable/disable...
+      private static void EnableDevice(SafeDeviceInfoSetHandle handle, DeviceInfoData diData, bool enable)
+      {
+        PropertyChangeParameters @params = new PropertyChangeParameters();
+        // The size is just the size of the header, but we've flattened the structure.
+        // The header comprises the first two fields, both integer.
+        @params.Size = 8;
+        @params.DiFunction = DiFunction.PropertyChange;
+        @params.Scope = Scopes.Global;
+        if (enable)
+        {
+          @params.StateChange = StateChangeAction.Enable;
+        }
+        else
+        {
+          @params.StateChange = StateChangeAction.Disable;
+        }
+
+        bool result = NativeMethods.SetupDiSetClassInstallParams(handle, ref diData, ref @params,
+          Marshal.SizeOf(@params));
+        if (result == false) throw new Win32Exception();
+        result = NativeMethods.SetupDiCallClassInstaller(DiFunction.PropertyChange, handle, ref diData);
+        if (result == false)
+        {
+          int err = Marshal.GetLastWin32Error();
+          if (err == (int)SetupApiError.NotDisableable)
+            throw new ArgumentException("Device can't be disabled (programmatically or in Device Manager).");
+          else if (err >= (int)SetupApiError.NoAssociatedClass && err <= (int)SetupApiError.OnlyValidateViaAuthenticode)
+            throw new Win32Exception("SetupAPI error: " + ((SetupApiError)err).ToString());
+          else
+            throw new Win32Exception();
+        }
       }
     }
-
-    private static void CheckError(string message, int lasterror = -1)
-    {
-
-      int code = lasterror == -1 ? Marshal.GetLastWin32Error() : lasterror;
-      if (code != 0) { }
-        //throw new ApplicationException(String.Format("Error disabling hardware device (Code {0}): {1}", code, message));
-    }
-
-    private static string GetStringPropertyForDevice(IntPtr info, SP_DEVINFO_DATA devdata, uint propId)
-    {
-      uint proptype, outsize;
-      IntPtr buffer = IntPtr.Zero;
-      try
-      {
-        uint buflen = 512;
-        buffer = Marshal.AllocHGlobal((int) buflen);
-        outsize = 0;
-        // CHANGE #2 - Use this instead of SetupDiGetDeviceProperty 
-        SetupDiGetDeviceRegistryPropertyW(info, ref devdata, propId, out proptype, buffer, buflen, ref outsize);
-
-        byte[] lbuffer = new byte[outsize];
-        Marshal.Copy(buffer, lbuffer, 0, (int) outsize);
-        int errcode = Marshal.GetLastWin32Error();
-        if (errcode == ERROR_INVALID_DATA) return null;
-        CheckError("SetupDiGetDeviceProperty", errcode);
-        return Encoding.Unicode.GetString(lbuffer);
-      }
-      finally
-      {
-        if (buffer != IntPtr.Zero)
-          Marshal.FreeHGlobal(buffer);
-      }
-    }
-
   }
 }

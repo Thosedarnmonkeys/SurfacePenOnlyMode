@@ -3,7 +3,6 @@ using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Linq;
-using System.Threading.Tasks;
 using System.Windows.Forms;
 using System.ComponentModel;
 using SurfacePenOnlyMode.Properties;
@@ -18,9 +17,6 @@ namespace SurfacePenOnlyMode
 
     private string instancePath = @"HID\VEN_8086&DEV_9D3E&SUBSYS_00000000&REV_21&COL05\4&F87CE30&0&0004";
     private Guid deviceGuid = new Guid("{745a17a0-74d3-11d0-b6fe-00a0c90f57da}");
-
-    private readonly Func<string, bool> matchFunc = s => s.Contains("VEN_8086&DEV_9D3E");//&SUBSYS_00000000&REV_21");
-    //private readonly Func<string, bool> matchFunc = s => s.ToLower() == "4&f87ce30&0&0004".ToLower();
     #endregion
 
     #region public methods
@@ -103,14 +99,12 @@ namespace SurfacePenOnlyMode
     #region private methods
     private void SetDriverOn()
     {
-      AlternateHardwareManager.DeviceHelper.SetDeviceEnabled(deviceGuid, instancePath, true);
-      //HardwareManager.SetDeviceState(matchFunc, false);
+      HardwareManager.DeviceHelper.SetDeviceEnabled(deviceGuid, instancePath, true);
     }
 
     private void SetDriverOff()
     {
-      AlternateHardwareManager.DeviceHelper.SetDeviceEnabled(deviceGuid, instancePath, false);
-      //HardwareManager.SetDeviceState(matchFunc, true);
+      HardwareManager.DeviceHelper.SetDeviceEnabled(deviceGuid, instancePath, false);
     }
     #endregion
 
