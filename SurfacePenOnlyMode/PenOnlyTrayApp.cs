@@ -16,7 +16,7 @@ namespace SurfacePenOnlyMode
     private ContextMenu trayMenu;
     private NotifyIcon trayIcon;
 
-    private string instancePath = @"BTHENUM\{13B67E97-545B-41DC-AC44-6FEDE5FE6087}_LOCALMFG&0000\7&1AE765EB&0&000000000000_00000000";
+    private string instancePath = @"HID\VEN_8086&DEV_9D3E&SUBSYS_00000000&REV_21&COL05\4&F87CE30&0&0004";
     private Guid deviceGuid = new Guid("{745a17a0-74d3-11d0-b6fe-00a0c90f57da}");
 
     private readonly Func<string, bool> matchFunc = s => s.Contains("VEN_8086&DEV_9D3E");//&SUBSYS_00000000&REV_21");
