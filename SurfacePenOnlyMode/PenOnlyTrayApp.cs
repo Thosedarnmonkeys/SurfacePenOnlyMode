@@ -41,8 +41,7 @@ namespace SurfacePenOnlyMode
       trayIcon = new NotifyIcon();
       trayIcon.Text = "Pen Only Mode";
 
-      Bitmap bmp = Resources.PenIcon;
-      trayIcon.Icon = Icon.FromHandle(bmp.GetHicon());
+      trayIcon.Icon = Resources.PenIcon;
 
       trayIcon.ContextMenu = trayMenu;
       trayIcon.Visible = true;
