@@ -87,10 +87,26 @@ namespace SurfacePenOnlyMode
 
     private void OnDeviceStateChange(object sender, EventArgs e)
     {
-      SetDriverOn();
+      try
+      {
+        SetDriverOn();
+      }
+      catch (Exception except)
+      {
+        MessageBox.Show("Error while trying to set driver on: " + except.Message);
+      }
     }
     private void OnClickExit(object sender, EventArgs e)
     {
+      try
+      {
+        SetDriverOn();
+      }
+      catch (Exception except)
+      {
+        MessageBox.Show("Error while trying to set driver on: " + except.Message);
+      }
+
       Close();
     }
     #endregion
